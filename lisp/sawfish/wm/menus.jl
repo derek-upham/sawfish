@@ -37,6 +37,7 @@
 	  rep.io.files
 	  rep.io.processes
 	  rep.data.tables
+          rep.system
 	  sawfish.wm.events
 	  sawfish.wm.windows
 	  sawfish.wm.misc
@@ -63,7 +64,22 @@
   (defvar menu-program (expand-file-name "sawfish-menu" sawfish-exec-directory)
     "Location of the program implementing sawfish's menu interface.")
 
-  (defvar menu-program-stays-running t
+  ;; rep provides make-temp-file, but that mechanism has problems for us:
+  ;;
+  ;; - The public "/tmp" directory invites security risks.
+  ;; - We get a random file each time, so we have to worry about cleanups.
+  ;;
+  ;; Since we don't have to worry about multiple menus running at the
+  ;; same time, we can re-use the same menu file over and over again.
+  ;;
+  ;; https://en.wikipedia.org/wiki/TMPDIR indicates that TMPDIR is part
+  ;; of the Single UNIX Specification.  It allows for a private,
+  ;; strongly owned directory, reducing security concerns.
+  (defvar menu-program-xml-file (expand-file-name "sawfish-popup-menu.xml" (getenv "TMPDIR")))
+
+  ;; The GTK4 menu generator presents one XML menu, and then exits,
+  ;; so this false value reflects that behavior.
+  (defvar menu-program-stays-running nil
     "When non-nil, the menu program is never stopped. If a number, then this
 is taken as the number of seconds to let the process hang around unused
 before killing it.")
@@ -195,9 +211,9 @@ before killing it.")
       (when menu
 	(nconc menu `(()
 		      (,(_ "_Lockdown Display")
-			(poweroff 'lockdown))
+		       (poweroff 'lockdown))
 		      (,(_ "L_ogout from Session")
-			(poweroff 'logout))
+		       (poweroff 'logout))
 		      ()
 		      (,(_ "_Reboot System")
 		       (poweroff 'reboot))
@@ -208,7 +224,7 @@ before killing it.")
 		      (,(_ "_Hibernate System")
 		       (poweroff 'hibernate)))))))
 
-  (define (menu-start-process)
+  (define (menu-start-process menu-program-args)
     (when menu-timer
       (delete-timer menu-timer)
       (setq menu-timer nil))
@@ -217,6 +233,7 @@ before killing it.")
 	(kill-process menu-process)
 	(setq menu-process nil))
       (let ((menu-sentinel (lambda ()
+                             (menu-unlock)
 			     (when (and menu-process
 					(not (process-in-use-p menu-process)))
 			       (setq menu-process nil))
@@ -240,7 +257,7 @@ before killing it.")
 			      (setq menu-pending output))))))
 	(setq menu-process (make-process menu-filter menu-sentinel)))
       (set-process-error-stream menu-process nil)
-      (or (start-process menu-process menu-program)
+      (or (apply start-process menu-process menu-program menu-program-args)
 	  (error "Can't start menu backend: %s" menu-program))))
 
   (define (menu-stop-process #!optional force)
@@ -271,57 +288,195 @@ before killing it.")
   (define menu-args (make-fluid '()))
   (define where-is-fun (make-fluid '()))
 
-  (define (menu-preprocessor cell)
-    (define (inner cell)
-      (when cell
-	(let ((label (car cell)))
+  ;; map radio-group ids to the last widget
+  (define group-table (make-fluid))
+  ;; utilities for group-table
+  (define (make-group-table) (make-table symbol-hash eq))
+  (define (group-id-set id w) (table-set (fluid group-table) id w))
+  (define (group-id-ref id) (table-ref (fluid group-table) id))
+
+  (define (round-trip-safe-action action)
+    (cond
+     ;; In a Rep context, we know that symbol 'nil' isn't an action,
+     ;; even though it looks like it could be one.  Replace it with
+     ;; the nil value.
+     ((eq action 'nil) nil)
+     ;; We can pass through normal symbols.
+     ((symbolp action) action)
+     ;; Convert everything else to a number, to reference later.
+     (t (make-nickname action))))
+
+  ;; menu-expander takes a menu definition, such as `root-menu', and
+  ;; evaluates the dynamic portions to produce a final, static
+  ;; representation, still within the menu definition format.
+  (define (menu-expander cell)
+    ;; cell may have empty list structure (), in which case pass through unchanged.
+    (if cell
+        ;; All cells have a label, the first element.
+        (let ((label (car cell)))
 	  (when (functionp label)
 	    (setq label (apply label (fluid menu-args))))
-	  (cond ((functionp (cdr cell))
-		 (setq cell (apply (cdr cell) (fluid menu-args))))
-		((and (symbolp (cdr cell)) (not (null (cdr cell))))
-		 (setq cell (symbol-value (cdr cell)))
-		 (when (functionp cell)
-		   (setq cell (apply cell (fluid menu-args)))))
-		(t (setq cell (cdr cell))))
+          ;; Now we drop the first element.  But it might have been a
+          ;; cons pair!  If what is left is a variable, evaluate it and
+          ;; substitute it.  If we then have a function, evaluate that
+          ;; and substitute it.
+          (setq cell (cdr cell))
+          (when (and (symbolp cell) (not (null cell)))
+            (setq cell (symbol-value cell)))
+          (when (functionp cell)
+            (setq cell (apply cell (fluid menu-args))))
+
 	  (when cell
+            ;; Submenus are a list, where the first element of the list
+            ;; is an initial label.
 	    (if (and (consp (car cell)) (stringp (car (car cell))))
-		;; recurse through sub-menu
-		(setq cell (mapcar inner cell))
+	        ;; recurse through sub-menu
+	        (setq cell (mapcar menu-expander cell))
+              ;; Leaf menu items have an action, followed by an alist of
+              ;; options.
 	      (let* ((action (car cell))
 		     (options (cdr cell))
 		     (shortcut (and (fluid where-is-fun)
 				    (symbolp action)
 				    ((fluid where-is-fun) action))))
-		(when (not (symbolp action))
-		  ;; a non-symbol result, replace by a nickname
-		  (setq action (make-nickname (car cell))))
-		;; scan the alist of options
-		(setq options (mapcar
-			       (lambda (cell)
-				 (if (functionp (cdr cell))
-				     (cons (car cell)
-					   (apply (cdr cell)
-						  (fluid menu-args)))
-				   cell)) options))
-		(when shortcut
-		  (setq options (cons (cons 'shortcut shortcut) options)))
-		(setq cell (cons action options)))))
-	  (cons label cell))))
-    (let-fluids ((where-is-fun (and menus-include-shortcuts
+                (setq action (round-trip-safe-action action))
+	        ;; scan the alist of options
+	        (setq options (mapcar (lambda (opt)
+			                (if (functionp (cdr opt))
+				            (cons (car opt)
+					          (apply (cdr opt)
+						         (fluid menu-args)))
+				          opt))
+                                      options))
+	        (when shortcut
+                  (setq label (format nil "%s (%s)" label shortcut)))
+	        (setq cell (cons action options)))))
+	  (cons label cell))
+      '()))
+
+  ;; Take an expanded, static menu definition, and provide a GTK4 menu
+  ;; definition for it in SXML.
+  ;;
+  ;; Note that this function handes top-level menus and submenus.  The
+  ;; necessary context comes from the caller:
+  ;;
+  ;; - The element-prefix is an SXML element-name and attribute list, and we
+  ;;   embed the menu entries into that element.
+  ;; - The menu-label is the visible name (string) of the parent, e.g.,
+  ;;   a "File" menu-label for entries "New" and "Open" and "Save".
+  ;;
+  ;; We provide special values for these when creating a top-level menu.
+  (define (menu-gtk4-format element-prefix menu-label entries)
+    (define (entry-separator? e) (null e))
+    (define (entry-label e) (car e))
+    (define (entry-actuation e) (cadr e))
+    (define (entry-properties e) (cddr e))
+    (define (entry-submenu? e) (and (consp (entry-actuation e)) (not (null (entry-actuation e)))))
+    (define (entry-submenu-entries e) (cdr e))
+    (define (entry-label-only? e) (null (entry-actuation e)))
+    (define (entry-group e) (cdr (assq 'group (entry-properties e))))
+    (define (entry-has-checkbox? e) (assq 'check (entry-properties e)))
+    (define (entry-checked? e) (cdr (assq 'check (entry-properties e))))
+    (define (entry-insensitive? e) (cdr (assq 'insensitive (entry-properties e))))
+    (define (id->string x) (cond ((numberp x) (number->string x))
+                                 ((symbolp x) (symbol-name x))
+                                 (t (format nil "?%S?" x))))
+
+    (define (entry->item e)
+      (cond ((and (entry-group e) (entry-checked? e))
+             `(item ()
+                    (attribute ((name . "label")) ,(entry-label e))
+                    (attribute ((name . "action")) ,(concat "app." (id->string (entry-group e))))
+                    (attribute ((name . "target")) ,(id->string (entry-actuation e)))
+                    (attribute ((name . "checked")) "true")))
+            ((entry-group e)
+             `(item ()
+                    (attribute ((name . "label")) ,(entry-label e))
+                    (attribute ((name . "action")) ,(concat "app." (id->string (entry-group e))))
+                    (attribute ((name . "target")) ,(id->string (entry-actuation e)))))
+            ((entry-checked? e)
+             `(item ()
+                    (attribute ((name . "label")) ,(entry-label e))
+                    (attribute ((name . "action")) ,(concat "app." (id->string (entry-actuation e))))
+                    (attribute ((name . "checked")) "true")))
+            ((and (entry-has-checkbox? e))
+             `(item ()
+                    (attribute ((name . "label")) ,(entry-label e))
+                    (attribute ((name . "action")) ,(concat "app." (id->string (entry-actuation e))))
+                    (attribute ((name . "checked")) "false")))
+            ;; The only label-only entry that I know of is the rootmenu label,
+            ;; which is also insensitive.  But let's catch any strays.  The menu
+            ;; generator utility goes into more detail about this special action.
+            ((or (entry-insensitive? e) (entry-label-only? e))
+             `(item ()
+                    (attribute ((name . "label")) ,(entry-label e))
+                    (attribute ((name . "action")) ,(concat "insensitive.none"))))
+            (t
+             `(item ()
+                    (attribute ((name . "label")) ,(entry-label e))
+                    (attribute ((name . "action")) ,(concat "app." (id->string (entry-actuation e))))
+                    ))))
+
+    ;; state machine:
+    ;;
+    ;; Accumulate menu entries until EOL or a () separator.
+    ;; Either of them causes us to flush the accumulated entries in a
+    ;; new <section> element, which we accumulate for final return.
+    ;;
+    ;; Any submenu (an entry with a non-empty list action) triggers a recursive call.
+    (let loop ((sections nil)
+               (section-entries nil)
+               (entries entries))
+      (define (flush-section-entries!)
+        (when section-entries ; handle stray duplicate separators by ignoring them
+          (setq sections (cons `(section () ,@(nreverse section-entries)) sections))))
+      (if (null entries)
+          ;; terminate
+          (progn
+            (flush-section-entries!)
+            (append element-prefix
+                    (if menu-label `((attribute ((name . "label")) ,menu-label)) '())
+                    (nreverse sections))) ; and exit
+        (let ((entry (car entries))
+              (remaining (cdr entries)))
+          (cond ((entry-separator? entry)
+                 (flush-section-entries!)
+                 (loop sections nil remaining))
+                ((entry-submenu? entry)
+                 (setq section-entries (cons (menu-gtk4-format `(submenu ())
+                                                               (entry-label entry)
+                                                               (entry-submenu-entries entry))
+                                             section-entries))
+                 (loop sections section-entries remaining))
+                (t
+                 (setq section-entries (cons (entry->item entry) section-entries))
+                 (loop sections section-entries remaining)))))))
+
+  ;; menu-emit produces a GTK4 menu definition in SXML format, along
+  ;; with setting up the nickname information.
+  (define (menu-emit spec)
+    (let-fluids ((group-table (make-group-table))
+                 (where-is-fun (and menus-include-shortcuts
 				    (require 'sawfish.wm.util.keymap)
 				    (make-memoizing-where-is
 				     (list global-keymap window-keymap)))))
-      (inner cell)))
+      (setq nickname-table (make-table eq-hash eq))
+      (setq nickname-index 0)
+      (let* ((evaluated-menu (mapcar menu-expander spec))
+             (converted-menu (menu-gtk4-format '(menu ((id . "menu"))) nil evaluated-menu)))
+        `(interface () ,converted-menu))))
+
+  (define (menu-unlock)
+    (setq menu-active nil)
+    (frame-draw-mutex nil))
 
   (define (menu-dispatch result)
     (let ((orig-win menu-active))
       (menu-stop-process)
       (when (nicknamep result)
 	(setq result (nickname-ref result)))
-      (setq menu-active nil)
+      (menu-unlock)
       (setq nickname-table nil)
-      (frame-draw-mutex nil)
       (when result
 	(when (windowp orig-win)
 	  (current-event-window orig-win))
@@ -338,13 +493,10 @@ before killing it.")
     (or spec (error "No menu given to popup-menu"))
     (if (and menu-active menu-process (process-in-use-p menu-process))
 	(error "Menu already active")
-      (let* ((part (clicked-frame-part))
-	     (offset (and part (frame-part-position part)))
-	     (dims (and part (frame-part-dimensions part))))
+      (progn
 	(setq menu-active (or (current-event-window) (input-focus)))
 	(condition-case error-data
 	    (progn
-	      (menu-start-process)
 	      ;; prevent any depressed button being redrawn until the menu
 	      ;; is popped down
 	      ;; XXX expose events screw this up..
@@ -358,25 +510,26 @@ before killing it.")
 	      (sync-server t)
 	      (when (functionp spec)
 		(setq spec (spec)))
-	      ;; XXX this is a hack, but I want menus to appear under buttons
-	      (if (and part (setq part (frame-part-get part 'class))
-		       (windowp menu-active)
-		       (string-match "-button$" (symbol-name part)))
-		  (progn
-		    (rplaca offset
-			    (max 0 (+ (car offset)
-				      (car (window-position menu-active)))))
-		    (rplacd offset
-			    (max 0 (+ (cdr offset) (cdr dims)
-				      (cdr (window-position menu-active))))))
-		(setq offset nil))
-	      (setq nickname-table (make-table eq-hash eq))
-	      (setq nickname-index 0)
-	      (format menu-process "(popup-menu %s %S %S)\n"
-		      ;; write out the menu spec in one chunk to
-		      ;; avoid large numbers of system calls :-[
-		      (format nil "%S" (mapcar menu-preprocessor spec))
-		      (x-server-timestamp) offset))
+              ;; GtkBuilder can parse XML from a file, or from a string.
+              ;; Our lower-level utility supports reading from stdin
+              ;; into a string, to pass to GtkBuilder.  But this depends
+              ;; on sending EOF to the utilty, to tell us when the
+              ;; string ends.
+              ;;
+              ;; rep's process layer doesn't expose the concept of
+              ;; closing the rep-to-process stream.  It only happens
+              ;; implicitly when shutting down the process.
+              ;;
+              ;; We could fix this by adding the feature to rep, but
+              ;; right now we work around it.  Write the XML menu to a
+              ;; temporary file, and point the utility to the temporary
+              ;; file.
+              (call-with-output-file menu-program-xml-file
+                                     (lambda (ostream)
+                                       (xml-fragments-emit ostream
+                                                           (sxml->xml-fragments
+                                                            (menu-emit spec)))))
+	      (menu-start-process (list menu-program-xml-file)))
           (error
            ;; prevents spurious errors with subsequent menus
            (setq menu-active nil)
@@ -431,4 +584,87 @@ before killing it.")
 		  (list (_ (cadr sub))
 			(intern (concat "customize:"
 					(symbol-name (car sub))))))
-		(filter consp (cddr custom-groups))))))
+		(filter consp (cddr custom-groups)))))
+
+  ;;;;
+
+
+  (define (sxml->xml-string sexp)
+    (let ((ostream (make-string-output-stream)))
+      (xml-fragments-emit ostream (sxml->xml-fragments sexp))
+      (get-output-stream-string ostream)))
+
+  (define (xml-fragments-emit ostream xml-fragments)
+    (tree-fold (lambda (os x) (write os x) os) ostream xml-fragments))
+
+  (define (sxml->xml-fragments sexp)
+    (cond ((stringp sexp) (sxml-text->xml-fragments sexp))
+          (t (sxml-element->xml-fragments sexp))))
+
+  (define (sxml-element->xml-fragments sexp)
+    (let ((element-name (car sexp))
+          (attributes (cadr sexp))
+          (children (cddr sexp)))
+      (unless (symbolp element-name)
+        (error "element-name not symbol"))
+      (unless (and (proper-list? attributes)
+                   (every? sxml-attribute-pair? attributes))
+        (error "attributes not list"))
+      (let ((attribute-fragments (mapcar sxml-attribute->xml-fragments attributes)))
+        `(,(format nil "\n<%s" element-name)
+          ,(if attribute-fragments " " "")
+          ,attribute-fragments
+          ">"
+          ,(mapcar sxml->xml-fragments children)
+          ,(format nil "</%s>\n" element-name)))))
+
+  (define (sxml-attribute->xml-fragments kv-pair)
+    (let ((key (car kv-pair))
+          (value (cdr kv-pair)))
+      (format nil "%s='%s'" key (xml-quote value))))
+
+  (define (sxml-text->xml-fragments text)
+    (xml-quote text))
+
+  (define (sxml-attribute-pair? x)
+    (and (consp x) (symbolp (car x)) (stringp (cdr x))))
+
+  ;; expand-last-match is broken; it substitutes the bare ampersand for
+  ;; the matched character, and we have to backslash-escape it to get
+  ;; the ampersand character.
+  (define (xml-quote str)
+    (string-replace "'"
+                    "\\&apos;"
+                    (string-replace ">"
+                                    "\\&gt;"
+                                    (string-replace "<"
+                                                    "\\&lt;"
+                                                    (string-replace "&"
+                                                                    "\\&amp;"
+                                                                    str)))))
+
+  (define (every? pred lst)
+    (cond ((null lst) t)
+          (t
+           (and (pred (car lst)) (every? pred (cdr lst))))))
+
+  (define (proper-list? lst)
+    (or (null lst)
+        (and (consp lst) (proper-list? (cdr lst)))))
+
+  (define (tree-fold op accum tree)
+    (cond ((null tree) accum)
+          ((consp tree) (tree-fold op (tree-fold op accum (car tree)) (cdr tree)))
+          (t (op accum tree))))
+
+  (define (call-with-output-file filename func)
+    (let ((ofile nil))
+      (unwind-protect
+          (progn
+            (setq ofile (open-file filename 'write))
+            (func ofile))
+        (when ofile
+          (flush-file ofile)
+          (close-file ofile)))))
+  )
+
