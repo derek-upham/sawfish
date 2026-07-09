@@ -101,8 +101,7 @@ INSTALL_SCRIPT=@INSTALL_SCRIPT@
 REP_MSGFMT=@REP_MSGFMT@
 
 # used when compiling/running lisp code
-REP_ENVIRON=REP_DL_LOAD_PATH=$(top_builddir)/src/.libexec \
-	    REP_GTK_DONT_INITIALIZE=1
+REP_ENVIRON=REP_DL_LOAD_PATH=$(top_builddir)/src/.libexec
 
 %.mo : %.po
 	$(REP_MSGFMT) $(MSGFMTFLAGS) -o $@ $<

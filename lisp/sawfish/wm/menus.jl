@@ -29,8 +29,7 @@
 	    popup-root-menu
 	    popup-apps-menu
 	    add-window-menu-toggle
-	    add-poweroff-menu
-	    custom-menu)
+	    add-poweroff-menu)
 
     (open rep
 	  rep.regexp
@@ -185,7 +184,6 @@ before killing it.")
       (,(_ "Work_spaces") . workspace-menu)
       ()
       (,(_ "_Programs") . apps-menu)
-      (,(_ "_Customize") . custom-menu)
       ()
       (,(_ "Sessi_on")
        (,(_ "Display _Errors") display-errors)
@@ -571,20 +569,6 @@ before killing it.")
 	 ((eq (cadar rest) command)
 	  (rplaca rest item))
 	 (t (loop (cdr rest)))))))
-
-;;; customize menu
-
-  (defvar custom-menu-includes-all-settings t
-    "When non-nil, the custom menu includes the `All settings' item.")
-
-  (define (custom-menu)
-    `(,@(and custom-menu-includes-all-settings
-	     (list (list (_ "S_awfishConfig") 'customize) nil))
-      ,@(mapcar (lambda (sub)
-		  (list (_ (cadr sub))
-			(intern (concat "customize:"
-					(symbol-name (car sub))))))
-		(filter consp (cddr custom-groups)))))
 
   ;;;;
 

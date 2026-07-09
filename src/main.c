@@ -433,12 +433,6 @@ main(int argc, char **argv)
     old_argv = argv;
     old_argc = argc;
 
-#ifdef TODO_DELETE_THIS
-    // "Since GLib 2.36, the type system is initialised automatically and this function does nothing."
-    // https://docs.gtk.org/gobject/func.type_init.html
-    g_type_init();
-#endif
-
     prog_name = *argv++; argc--;
     lang = setlocale(LC_ALL, "");
     rep_init (prog_name, &argc, &argv, 0, 0);

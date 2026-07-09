@@ -4,7 +4,7 @@ BUGS
 If you think you have found a bug,
 
 1. Check if it'll be a new report.
-First check for newer versions of sawfish and librep/rep-gtk.  If it
+First check for newer versions of sawfish and librep.  If it
 still happens with the latest versions, search for similar bugs by web
 searching / in GNOME Bugzilla (http://bugzilla.gnome.org).
 

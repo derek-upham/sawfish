@@ -3114,23 +3114,7 @@ the window manager through the creation of new Lisp modules.
 
 Obviously the first of these requires a lot less specialized knowledge
 than the second. But even then, the user has to edit startup files
-containing the Lisp forms setting the variables. To remove this need
-for hand-editing, Sawfish has a specialized system allowing all
-customizations to be made through a GUI, and then automatically
-reloaded each time that the window manager is started.
-
-@deffn Function customize @t{#!optional} group
-@deffnx Command customize
-Invoke the user-customization GUI. @var{group} defines the class of
-customization variables to configure, or all classes if @var{group} is
-undefined.
-@end deffn
-
-There also exists commands like @code{customize:appearance}, i.e. for
-each top-level customization group, the command to customize only it
-and its subgroups.
-
-The @file{sawfish-config} program can be used to invoke the GUI manually.
+containing the Lisp forms setting the variables.
 
 In order to provide these customization options however, an extra
 requirement is placed on the Lisp programmer. Instead of just using the
@@ -3207,11 +3191,6 @@ The first three arguments are analogous to the @code{defvar} special
 form, they declare a special variable stored in the symbol
 @var{variable}, whose value is set to @var{value} if the variable is
 currently unbound, with a documentation string @var{documentation}.
-
-In the configurator, gtk widget appears left to the docstring. But if
-the docstring ends with ``\\w'' (literally in the source; the first
-backslash for escaping the second), then the widget is put right to
-the text. This feature is supported by only some widgets.
 
 All other parameters are key-value pairs as with @code{defgroup}. The
 possible pairs are as follows:
@@ -7883,11 +7862,6 @@ Session management hooks, @ref{Session Management}.
 @section Other Hooks
 @cindex Other Hooks
 @cindex Hooks, Other
-
-@defvr {Hook} gtkrc-changed-hook
-When using the @code{gtkrc} module to load the current gtk style
-parameters, this hook is called when the style changes.
-@end defvr
 
 @defvr {Window Hook} client-message-hook
 Called with arguments @code{(@var{window} @var{type}

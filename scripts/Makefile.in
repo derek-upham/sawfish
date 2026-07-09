@@ -25,7 +25,7 @@ top_builddir=..
 top_srcdir=@top_srcdir@
 srcdir=@srcdir@
 
-LISP_SRCS := sawfish-client.jl sawfish-about.jl
+LISP_SRCS := sawfish-client.jl
 LISP_OBJS := $(LISP_SRCS:.jl=.jlc)
 
 REP_ENVIRON := $(REP_ENVIRON) REP_LOAD_PATH=$(top_srcdir)/lisp:$(top_builddir)/lisp
@@ -39,18 +39,21 @@ SUBSTS := -e "s|__lispdir__|$(lispdir)|" \
 %.jlc : %.jl
 	$(REP_ENVIRON) rep compiler -f compile-batch $<
 
-all : $(LISP_OBJS) sawfish-menu
+all : $(LISP_OBJS) sawfish-menu sawfish-about
 
 sawfish-menu: sawfish-menu.c
-	$(CC) -o sawfish-menu sawfish-menu.c -Wno-deprecated-declarations -ggdb -std=c2x $(shell pkg-config --cflags --libs gtk4-x11)
+	$(CC) -o sawfish-menu sawfish-menu.c -Wno-deprecated-declarations $(CFLAGS) -std=c2x $(GTK_CFLAGS) $(GTK_LIBS)
 
-sawfish-about.jl : sawfish-about.jl.in ./Makefile
+sawfish-about : sawfish-about.c
+	$(CC) -o sawfish-about sawfish-about.c -Wno-deprecated-declarations $(CFLAGS) -std=c2x $(GTK_CFLAGS) $(GTK_LIBS)
+
+sawfish-about.c : sawfish-about.c.in ./Makefile
 	sed $(SUBSTS) $< >$@
 
 install : all installdirs
 	$(INSTALL_SCRIPT) sawfish-menu $(DESTDIR)$(sawfishexecdir)/sawfish-menu
 	$(INSTALL_SCRIPT) sawfish-client.jlc $(DESTDIR)$(bindir)/sawfish-client
-	$(INSTALL_SCRIPT) sawfish-about.jlc $(DESTDIR)$(bindir)/sawfish-about
+	$(INSTALL_SCRIPT) sawfish-about $(DESTDIR)$(bindir)/sawfish-about
 	$(INSTALL_DATA) sawfish.png $(DESTDIR)$(sawfishdir)/sawfish.png
 	$(INSTALL_DATA) cabinet-missing.png $(DESTDIR)$(sawfishimagedir)/cabinet-missing.png
 
@@ -65,7 +68,7 @@ installdirs : $(top_srcdir)/mkinstalldirs
 	$(SHELL) $< $(DESTDIR)$(bindir) $(DESTDIR)$(sawfishexecdir) $(DESTDIR)$(sawfishimagedir)
 
 clean :
-	rm -f *~ *.jlc core sawfish-about.jl sawfish-menu
+	rm -f *~ *.jlc core sawfish-about sawfish-menu
 
 distclean : clean
 	rm -f Makefile

@@ -40,7 +40,7 @@ INSTALL_HDRS = sawfish.h sawfish_subrs.h libclient.h server.h keys.h build.h
 
 override CFLAGS := $(CFLAGS) $(REP_CFLAGS) $(IMAGE_CFLAGS) $(X11_CFLAGS) $(PANGO_CFLAGS) 
 
-all : sawfish libclient.o $(DL_OBJS) .libexec gtk-style
+all : sawfish libclient.o $(DL_OBJS) .libexec
 
 sawfish : $(OBJS) $(LIBOBJS)
 	$(LIBTOOL) --mode=link --tag=CC $(CC) -export-dynamic $(LDFLAGS) \
@@ -56,14 +56,10 @@ libclient_.lo : libclient.c
 client.la : client.lo libclient_.lo
 	$(rep_DL_LD) $(LDFLAGS) -o $@ $^ $(X11_LIBS) $(REP_LIBS) $(LIBS) $(XRANDR_LIBS)
 
-gtk-style : gtk-style.c
-	$(CC) $(CFLAGS) $(CPPFLAGS) $(GTK_CFLAGS) $(LDFLAGS) -o $@ $< $(GTK_LIBS) $(LIBS) $(XRANDR_LIBS)
-
 install : all installdirs
 	for p in sawfish; do \
 	  $(LIBTOOL) --mode=install $(INSTALL_PROGRAM) $$p $(DESTDIR)${bindir}; \
 	done
-	$(rep_DL_INSTALL) gtk-style $(DESTDIR)${sawfishexecdir}
 	$(foreach x,$(DL_DSTS),\
 	  $(LIBTOOL) --mode=install $(INSTALL_PROGRAM) \
 	  $(notdir $(x)) $(DESTDIR)$(sawfishexecdir)/$(dir $(x));)
@@ -79,7 +75,6 @@ uninstall :
 	  $(LIBTOOL) --mode=uninstall rm -f $(DESTDIR)${bindir}/$$p; \
 	done
 	rm -f $(DESTDIR)$(bindir)/sawfish-client
-	$(rep_DL_UNINSTALL) -f $(DESTDIR)${sawfishexecdir}/gtk-style
 	for dl in $(DL_DSTS); do \
 	  $(LIBTOOL) --mode=uninstall rm -f $(DESTDIR)${sawfishexecdir}/$$dl; \
 	done
@@ -96,8 +91,7 @@ installdirs : $(top_srcdir)/mkinstalldirs
 
 clean :
 	rm -f *~ *.o *.lo *.la *.jlc build.h core \
-		.*.d sawfish sawfish-about.jl \
-		 gtk-style
+		.*.d sawfish sawfish-about.jl
 	rm -rf .libs .libexec
 
 distclean : clean

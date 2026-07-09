@@ -1,12 +1,10 @@
 Requirements
 ============
 
-   To compile this distribution you'll need GNU make, Imlib, my librep
-Lisp interpreter, and the rep-gtk binding installed. Sources for some
-of these are:
+   To compile this distribution you'll need GNU make, Imlib, and my
+librep Lisp interpreter installed. Sources for some of these are:
 
 	http://librep.sourceforge.net/
-	http://rep-gtk.sourceforge.net/
 	ftp://ftp.enlightenment.org/e/enlightenment/libs/
 
 

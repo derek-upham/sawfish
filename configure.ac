@@ -229,22 +229,15 @@ PKG_CHECK_MODULES(LIBREP, librep >= ${REP_MIN_VER}
 		  REP_VERSION="`$PKG_CONFIG --variable=version librep`"
 		  ,AC_MSG_ERROR([cannot locate librep >= $REP_MIN_VER]))
 
-dnl Check for GTK+2
-GTK_MIN_VER="2.24.0"
-GDK_MIN_VER="2.23.0"
+dnl Check for GTK+4
+GTK_MIN_VER="4.22.0"
+GDK_MIN_VER="2.44.0"
 
-PKG_CHECK_MODULES(GTK, gtk+-2.0 >= ${GTK_MIN_VER}
-		  ,GTK_LIBS="`$PKG_CONFIG --libs gtk+-2.0`"
-		  GTK_CFLAGS="`$PKG_CONFIG --cflags gtk+-2.0`"
+PKG_CHECK_MODULES(GTK, gtk4-x11 >= ${GTK_MIN_VER}
+		  ,GTK_LIBS="`$PKG_CONFIG --libs gtk4-x11`"
+		  GTK_CFLAGS="`$PKG_CONFIG --cflags gtk4-x11`"
 		  AC_DEFINE(HAVE_GTK, 1, [Have GTK])
 		  ,AC_MSG_ERROR([cannot locate gtk+ >= $GTK_MIN_VER]))
-
-dnl Check for rep-gtk
-REP_GTK_MIN_VER="0.90.7"
-
-PKG_CHECK_MODULES(REP_GTK, rep-gtk >= ${REP_GTK_MIN_VER}
-		  ,
-		  ,AC_MSG_ERROR([cannot locate rep-gtk >= $REP_GTK_MIN_VER]))
 
 dnl Check for image handling libraries
 AC_ARG_WITH(gdk-pixbuf,
@@ -429,7 +422,6 @@ AC_SUBST(GTK_MIN_VER)
 AC_SUBST(GTK_LIBS)
 AC_SUBST(GTK_CFLAGS)
 AC_SUBST(REP_MIN_VER)
-AC_SUBST(REP_GTK_MIN_VER)
 AC_SUBST(VERSION)
 AC_SUBST(PACKAGE)
 AC_SUBST(GETTEXT_PACKAGE)
@@ -452,9 +444,6 @@ data/sawfish.ebuild
 data/sawfish.pc
 data/sawfish.spec
 lisp/Makefile
-lisp/sawfish/cfg/Makefile
-lisp/sawfish/gtk/Makefile
-lisp/sawfish/gtk/widgets/font.jl
 man/Makefile
 po/Makefile
 scripts/Makefile
@@ -469,7 +458,6 @@ mv data/sawfish.ebuild sawfish-$version.ebuild
 mv data/sawfish.spec sawfish.spec
 
 REP_VERSION="`$PKG_CONFIG --modversion librep`"
-REP_GTK_VERSION="`$PKG_CONFIG --modversion rep-gtk`"
 GLIB_VERSION="`$PKG_CONFIG --modversion glib-2.0`"
 PANGO_VERSION="`$PKG_CONFIG --modversion pango`"
 
@@ -477,7 +465,7 @@ if $PKG_CONFIG --exists cairo; then
 	CAIRO_VERSION="`$PKG_CONFIG --modversion cairo`"
 fi
 
-GTK_VERSION="`$PKG_CONFIG --modversion gtk+-2.0`"
+GTK_VERSION="`$PKG_CONFIG --modversion gtk4-x11`"
 
 echo "
   == == == == == == == == == == == == ==
@@ -502,7 +490,6 @@ echo "
   == == == == == == == == == == == == ==
 
   rep:		$REP_VERSION
-  rep-gtk:	$REP_GTK_VERSION
   glib:		$GLIB_VERSION"
 
 if $PKG_CONFIG --exists cairo; then
@@ -510,7 +497,7 @@ if $PKG_CONFIG --exists cairo; then
 fi
 
 echo "  pango:	$PANGO_VERSION
-  gtk+:		$GTK_VERSION"
+  gtk:		$GTK_VERSION"
 
 if test "$with_gdk_pixbuf" = "no"; then
 echo "  imlib1:	$IMLIB_VERSION"

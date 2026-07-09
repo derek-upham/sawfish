@@ -26,7 +26,6 @@
 ;;    (add-autoloads "SOURCE-DIR/lisp/sawfish/wm/autoload.jl" buffer)))
 
 ;;; ::autoload-start::
-(autoload-command 'customize 'sawfish.wm.customize)
 (autoload-command 'popup-window-ops-menu 'sawfish.wm.menus)
 (autoload-command 'popup-root-menu 'sawfish.wm.menus)
 (autoload-command 'popup-apps-menu 'sawfish.wm.menus)

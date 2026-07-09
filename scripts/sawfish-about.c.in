@@ -1,0 +1,82 @@
+#include <gtk/gtk.h>
+
+static GtkApplication *app = NULL;
+static GtkWidget *window = NULL;
+static GtkAboutDialog *dialog = NULL;
+
+static gboolean
+close_dialog (GtkAboutDialog *about, gpointer user_data)
+{
+  g_application_quit (G_APPLICATION (user_data));
+  return TRUE;
+}
+
+static void
+on_activate (GApplication *app, gpointer user_data)
+{
+  /*
+    The application needs a window.  Otherwise the dialog box exits
+    immediately.  We don't have to present the app window, though.
+   */
+  window = gtk_application_window_new (GTK_APPLICATION (app));
+
+  dialog = GTK_ABOUT_DIALOG (gtk_about_dialog_new ());
+
+  const char *AUTHORS[] = {"1999-2007: John Harper",
+                           "2007-2012: Janek 'Re-Animator' Kozicki, Timo Korvola, Andrea Vetorello, Guillermo S. Romero",
+                           "2008-2012: Teika 'Mister X' Kazura",
+                           "2008-2014: Christopher 'Flashrider' Bratusek",
+                           "2009-2012: Jeremy Hankins, Matthew Love",
+                           "2010-2014: fuchur",
+                           "1999-2014: All the brave contributors (see `THANKS' in `CONTRIBUTING')",
+                           NULL};
+
+  gtk_about_dialog_set_program_name (dialog, "Sawfish");
+  gtk_about_dialog_set_version (dialog, "__version__ \"__codename__\"");
+  gtk_about_dialog_set_copyright (dialog, "© 1999-2000 John Harper\
+  \n© 2000 Eazel, Inc\
+  \n© 2007-2008 Janek Kozicki\
+  \n© 2008-2014 Christopher Bratusek et all");
+  gtk_about_dialog_set_license (dialog, "Sawfish is released under the terms of the\
+  \n\n\tGNU General Public License version 2, or (at your option) any later version.\
+  \n\nSee the `COPYING' file in the source tree for the full license.\
+  \n\nThe Sounds are distributed under the terms of the\
+  \n\n\tArtistic License version 2.0.\
+  \n\nSee the `COPYING.SOUNDS' file in the source-tree for the full license.");
+  gtk_about_dialog_set_comments (dialog, "Sawfish manages your windows extensibly");
+  gtk_about_dialog_set_website (dialog, "http://sawfish.wikia.com");
+  gtk_about_dialog_set_website_label (dialog, "Sawfish Wiki");
+  gtk_about_dialog_set_authors (dialog, AUTHORS);
+  gtk_about_dialog_set_translator_credits (dialog, "de: Christian Kirbach, Mario Blättermann, fuchur\
+  \nes: Jorge Gonzalez Gonzalez, Jacinto Capote Robles\
+  \neu: Inaki Larranaga Murgoitio\
+  \nsv: Daniel Nylander\
+  \nand the whole GNOME Translation Team!");
+  GdkTexture *logo = gdk_texture_new_from_filename ("__sawfishdir__/sawfish.png", NULL);
+  if (logo)
+    {
+      gtk_about_dialog_set_logo (dialog, GDK_PAINTABLE (logo));
+    }
+
+  g_signal_connect (dialog, "close-request", G_CALLBACK (close_dialog), app);
+
+  gtk_window_present (GTK_WINDOW (dialog));
+}
+
+int
+main (int argc, char *argv[])
+{
+  app = gtk_application_new ("com.local.sawfishaboutmenu", G_APPLICATION_DEFAULT_FLAGS);
+
+  g_signal_connect (app, "activate", G_CALLBACK (on_activate), NULL);
+
+  int status = g_application_run (G_APPLICATION (app), 1, (char *[]) { argv[0] });
+  g_object_unref (app);
+}
+
+/*
+
+Local Variables:
+compile-command: "gcc -o sawfish-about sawfish-about.c -Wno-deprecated-declarations -ggdb -std=c17 $(pkg-config --cflags --libs gtk4-x11)";
+End:
+*/

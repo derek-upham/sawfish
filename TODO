@@ -29,9 +29,6 @@ Outstanding bugs
     In some cases it falls back to keying off the name associated with
     the closure object.
 
-  ! need better error handling in sawfish-config (e.g. values that don't
-    match widget types)
-
   ! workspace names don't change as workspaces are added/deleted
 
     solution: use an alist mapping workspace ids to workspace names,
@@ -176,27 +173,6 @@ Window manager tasks
     This could be useful for the sides of windows
 
     [ scp found a library for doing this with Xlib.. ]
-
-  - GTK theme
-
-    Is there any way that the gtk theme could support engine-based GTK
-    themes? Probably not without using a subprocess (since the engines
-    are written to GDK, not Xlib), this could get hairy..
-
-    Also, why do themes with bg_pixmap set use so much memory? Is it
-    just because the images are XPM's..?
-
-    re: engines, now that frame parts are proper objects, and thus
-    fg/bg specifiers may be functions, it should be possible to spawn a
-    GTK slave to do all redrawing (using the gtk_draw_foo functions)
-
-    have to be careful to avoid deadlocks though. Maybe avoid using
-    fifos for this reason, perhaps use SYSV shared memory segments and
-    semaphores?
-
-    [ I have a patch that does a first approximation of this, the
-    problem however is that GTK doesn't have enough drawing primitives 
-    to cleanly handle all buttons etc.. ]
 
   - Remove root menu?
 

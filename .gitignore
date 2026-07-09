@@ -21,10 +21,6 @@ doc/USERDOC
 install-sh
 libtool
 lisp/Makefile
-lisp/sawfish/cfg/Makefile
-lisp/sawfish/cfg/main.jl
-lisp/sawfish/gtk/Makefile
-lisp/sawfish/gtk/widgets/font.jl
 ltmain.sh
 m4/
 man/*.gz
@@ -35,13 +31,14 @@ po/Makefile
 sawfish-*.ebuild
 sawfish.spec
 scripts/Makefile
-scripts/sawfish-about.jl
+scripts/sawfish-about
+scripts/sawfish-about.c
+scripts/sawfish-menu
 sounds/Makefile
 src/.*.d
 src/.libexec/
 src/.libs/
 src/Makefile
 src/build.h
-src/gtk-style
 src/sawfish
 themes/*.tar.gz

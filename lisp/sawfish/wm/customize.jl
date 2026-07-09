@@ -21,8 +21,7 @@
 
 (define-structure sawfish.wm.customize
 
-    (export customize
-	    customize-read-user-file
+    (export customize-read-user-file
 	    customize-write-user-file
 	    customize-set)
 
@@ -35,33 +34,12 @@
 
   (define-structure-alias customize sawfish.wm.customize)
 
-  (defvar customize-program "sawfish-config"
-    "Command name of the configurator GUI.")
-
-  (defvar customize-group-opt "--group")
-
-  (defvar customize-redirect ">/dev/null 2>&1 </dev/null"
-    "Redirect the configurator's input & output.")
-
   ;; Stores the content of ~/.sawfish/custom, both for
   ;; parsing and writing.
   (define customize-user-forms nil)
 
   (define customize-user-file-read nil)
   (define customize-user-file-dirty nil)
-
-;;; ui
-
-  (define (customize #!optional group)
-    "Invoke the configurator GUI."
-    (system (format nil "%s %s '%S' %s &"
-		    customize-program
-		    (if group customize-group-opt "")
-		    (or group "")
-		    customize-redirect)))
-
-  ;;###autoload
-  (define-command 'customize customize)
 
 ;;; setting variables
 

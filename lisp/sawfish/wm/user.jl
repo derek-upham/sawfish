@@ -255,19 +255,6 @@ Possible values are \"kde\", \"gnome\", \"mate\", \"xfce\", \"lxde\", \"lumina\"
        (t (do-load arg)))))
 
   (unless batch-mode
-    (add-hook 'before-restart-hook
-      (lambda () (let ((sc (get-window-by-class
-			     "Sawfish-Configurator" #:regex t)))
-		   (when sc
-		     (delete-window-safely sc)
-		     (system "touch ~/.restart_sc &")))))
-
-    (add-hook 'before-exit-hook
-      (lambda () (let ((sc (get-window-by-class
-			     "Sawfish-Configurator" #:regex t)))
-		   (when sc
-		     (delete-window-safely sc)))))
-
     (when (file-exists-p "~/.restart_sc")
       (system "sawfish-config &")
       (delete-file "~/.restart_sc")))

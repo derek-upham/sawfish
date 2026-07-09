@@ -66,10 +66,9 @@
       ;; It's ok for librep to fix it, too.
       %in-condition-case))
 
-  (define safe-features '(sawfish.wm.util.gtkrc
-			  sawfish.wm.util.x
+  (define safe-features '(sawfish.wm.util.x
 			  ;; compatibility
-			  gtkrc x))
+			  x))
   (define fully-safe-features '(rep.io.timers rep.data.tables
 				rep.data.records rep.data.ring
 				rep.data.queues rep.data.symbol-table

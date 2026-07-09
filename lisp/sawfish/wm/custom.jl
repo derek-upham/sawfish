@@ -207,17 +207,7 @@ Note that the value of the `:group' key is not evaluated."
 	   (custom-set-group-property (append container (list group))
 				      (car keys) (cadr keys))))
 	(setq keys (cddr keys)))
-      (custom-add-to-group (list group doc) container)
-      (unless container
-	;; declare a command to customize this group
-	(define-command (intern (concat "customize:" (symbol-name group)))
-          (lambda ()
-            (require 'sawfish.wm.customize)
-            (customize group))
-	  #:doc (format nil
-			"Invoke configurator to customize group %s."
-			group
-			)))))
+      (custom-add-to-group (list group doc) container)))
 
   (define (custom-quote-keys keys)
     (let ((out '()))

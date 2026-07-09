@@ -62,11 +62,8 @@ gzip -9nf %{buildroot}%{_infodir}/sawfish*
 rm -f %{buildroot}%{_infodir}/dir
 find %{buildroot}%{_libdir} -name \*.a -exec rm '{}' \;
 find %{buildroot}%{_libdir} -name \*.la -exec rm '{}' \;
-# Fix main.jl (sawfish-config) for rpmlint
-sed -i -e '/^\#!/,/^!\#/d' %{buildroot}%{_datadir}/sawfish/lisp/sawfish/cfg/main.jl
 
 desktop-file-validate %{buildroot}%{_datadir}/applications/sawfish.desktop
-desktop-file-validate %{buildroot}%{_datadir}/applications/sawfish-config.desktop
 desktop-file-validate %{buildroot}%{_datadir}/gnome/wm-properties/sawfish-wm.desktop
 desktop-file-validate %{buildroot}%{_kde4_appsdir}/ksmserver/windowmanagers/sawfish.desktop
 desktop-file-validate %{buildroot}%{_datadir}/xsessions/sawfish.desktop
@@ -93,7 +90,6 @@ fi
 %{_libdir}/sawfish
 %{_datadir}/sawfish
 %{_datadir}/applications/sawfish.desktop
-%{_datadir}/applications/sawfish-config.desktop
 %{_datadir}/gnome/wm-properties/sawfish-wm.desktop
 %{_kde4_appsdir}/ksmserver/windowmanagers/sawfish.desktop
 %{_datadir}/ksmserver/windowmanagers/sawfish.desktop
@@ -103,17 +99,12 @@ fi
 %{_datadir}/xsessions/sawfish-lumina.desktop
 %{_datadir}/xsessions/sawfish-mate.desktop
 %{_datadir}/xsessions/sawfish-xfce.desktop
-%{_datadir}/icons/hicolor/32x32/apps/sawfish-config.png
 %{_mandir}/man1/sawfish*.gz
 %{_infodir}/sawfish*
 
 %files devel
 %{_includedir}/sawfish
 %{_libdir}/pkgconfig/sawfish.pc
-
-# Note about rpmlint warning:
-# W: devel-file-in-non-devel-package /usr/bin/sawfish-config
-# This is sawfish GUI configurator, not devel config script.
 
 %changelog
 * Sat Aug 13 2016 Kim B. Heino <b@bbbs.net> - 1.11.91-1

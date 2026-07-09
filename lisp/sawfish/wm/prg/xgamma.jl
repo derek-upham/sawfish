@@ -22,7 +22,7 @@
 (define-structure sawfish.wm.prg.xgamma
 
   (export xgamma-set
-	  ;; for user.jl/sawfish-config
+	  ;; for user.jl
 	  xgamma-set-from-cfg
           xgamma-get)
 
