@@ -36,11 +36,12 @@
 #include <stdio.h>
 #include <stdarg.h>
 #include <X11/Xlib.h>
+#include <X11/Xutil.h>
 
 #if defined (HAVE_IMLIB)
 # include <Imlib.h>
 #elif defined (HAVE_GDK_PIXBUF)
-# include <gdk-pixbuf-xlib/gdk-pixbuf-xlib.h>
+#include <gdk-pixbuf/gdk-pixbuf.h>
 #else
 # error "Need an image handling library!"
 #endif

@@ -43,9 +43,6 @@
 #include <limits.h>
 #include <unistd.h>
 #include <X11/Xlocale.h>		/* for setlocale () */
-#ifdef HAVE_GDK_PIXBUF
-#include <glib-object.h>
-#endif
 
 /* one of the ec_ values */
 int exit_code = ec_no_exit;
@@ -436,7 +433,9 @@ main(int argc, char **argv)
     old_argv = argv;
     old_argc = argc;
 
-#ifdef HAVE_GDK_PIXBUF
+#ifdef TODO_DELETE_THIS
+    // "Since GLib 2.36, the type system is initialised automatically and this function does nothing."
+    // https://docs.gtk.org/gobject/func.type_init.html
     g_type_init();
 #endif
 

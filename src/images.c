@@ -41,6 +41,8 @@
 #include <assert.h>
 #include <string.h>
 
+#include "gdk-pixbuf-xlib.h"
+
 static Lisp_Image *image_list;
 int image_type;
 

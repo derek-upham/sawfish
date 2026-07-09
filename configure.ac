@@ -252,16 +252,16 @@ AC_ARG_WITH(gdk-pixbuf,
   --without-gdk-pixbuf	  Use Imlib1 instead], [], [with_gdk_pixbuf=yes])
 
 if test "$with_gdk_pixbuf" != "no"; then
-	PKG_CHECK_MODULES(GDK_PIXBUF, gdk-pixbuf-xlib-2.0 >= ${GDK_MIN_VER}
-			  ,IMAGE_CFLAGS="`$PKG_CONFIG --cflags gdk-pixbuf-xlib-2.0`"
-			  IMAGE_LIBS="`$PKG_CONFIG --libs gdk-pixbuf-xlib-2.0`"
-			  IMAGE_PC="gdk-pixbuf-xlib-2.0 >= ${GDK_MIN_VER}"
+	PKG_CHECK_MODULES(GDK_PIXBUF, gdk-pixbuf-2.0 >= ${GDK_MIN_VER}
+			  ,IMAGE_CFLAGS="`$PKG_CONFIG --cflags gdk-pixbuf-2.0`"
+			  IMAGE_LIBS="`$PKG_CONFIG --libs gdk-pixbuf-2.0`"
+			  IMAGE_PC="gdk-pixbuf-2.0 >= ${GDK_MIN_VER}"
 			  AC_DEFINE(HAVE_GDK_PIXBUF, 1, [Have gdk-pixbuf])
 			  AC_DEFINE(NEED_PIXMAP_CACHE, 1, [Need pixmap cache])
 			  IMAGE_LOADER="GDK Pixbuf Xlib"
-			  imageloader="gdk-pixbuf-xlib"
+			  imageloader="gdk-pixbuf"
 			  with_gdk_pixbuf=yes
-			  ,AC_MSG_ERROR([cannot locate gdk-pixbuf-xlib-2.0 >= $GTK_MIN_VER])
+			  ,AC_MSG_ERROR([cannot locate gdk-pixbuf-2.0 >= $GDK_MIN_VER])
 			  with_gdk_pixbuf=no)
 fi
 
